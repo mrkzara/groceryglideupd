@@ -1,15 +1,15 @@
 import React from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
 
-export default function ItemListCollection({ product }) {
+export default function ItemListCollection({ product, onAdd }) {
   return (
     <View style={styles.container}>
       <Image
-        source={{ uri:product?.imageUrl}} 
+        source={{ uri: product?.imageUrl }}
         style={styles.image}
       />
       <Text style={styles.name}>{product.name}</Text>
-      <TouchableOpacity style={styles.button}>
+      <TouchableOpacity style={styles.button} onPress={() => onAdd(product)}>
         <Text style={styles.buttonText}>Add</Text>
       </TouchableOpacity>
     </View>
