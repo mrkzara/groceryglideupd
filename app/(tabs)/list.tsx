@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, FlatList, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { collection, query, onSnapshot, deleteDoc, doc } from 'firebase/firestore';
 import { db } from '@/config/firebaseconfig';
-import { useNavigation } from '@react-navigation/native'; // Make sure you're importing this
+import { useNavigation } from '@react-navigation/native';
 
 interface SelectedItem {
   id: string;
@@ -61,13 +61,16 @@ export default function ListScreen() {
         },
         {
           text: "Yes",
-          onPress: () => navigation.navigate('map'), // Navigate using the correct name
+          onPress: () => {
+            const selectedCategories = [...new Set(selectedItems.map(item => item.category))];
+            navigation.navigate('map', { selectedCategories });
+          },
         },
       ],
       { cancelable: false }
     );
   };
-
+  
   const handleRemoveItem = async (itemId: string, itemName: string) => {
     await deleteDoc(doc(db, 'SelectedItems', itemId));
     setSelectedItems((prevItems) =>

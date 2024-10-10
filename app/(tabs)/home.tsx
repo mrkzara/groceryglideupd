@@ -1,17 +1,26 @@
 import React from 'react';
-import { View, Text } from 'react-native';
+import { View, ScrollView, StyleSheet } from 'react-native';
 import Slider from '../../components/Home/Slider'; // Adjust the import path to your components folder
-import ItemsByCategory from '../../components/Home/ItemsByCategory'
+import ItemsByCategory from '../../components/Home/ItemsByCategory';
+
 export default function HomeScreen() {
   return (
-    <View style={{
-      padding:20,
-      marginTop:20
-    }}>
-      
+    <ScrollView 
+      style={styles.container}
+      contentContainerStyle={styles.contentContainer}
+    >
       <Slider /> 
-
       <ItemsByCategory />
-    </View>
+    </ScrollView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  contentContainer: {
+    padding: 20,
+    paddingBottom: 50, // Add bottom padding if necessary
+  },
+});
