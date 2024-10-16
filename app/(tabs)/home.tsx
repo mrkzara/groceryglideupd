@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, ScrollView, StyleSheet } from 'react-native';
-import Slider from '../../components/Home/Slider'; // Adjust the import path to your components folder
+import Slider from '../../components/Home/Slider'; 
 import ItemsByCategory from '../../components/Home/ItemsByCategory';
 
 export default function HomeScreen() {

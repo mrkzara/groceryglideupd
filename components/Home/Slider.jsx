@@ -13,8 +13,8 @@ export default function Slider() {
 
   const GetSliders = async () => {
     const snapshot = await getDocs(collection(db, 'Sliders'));
-    const sliders = snapshot.docs.map(doc => doc.data()); // Collect all slider data
-    setSliderList(sliders); // Set state once with all slider data
+    const sliders = snapshot.docs.map(doc => doc.data()); 
+    setSliderList(sliders); 
   };
 
   return (
@@ -24,7 +24,7 @@ export default function Slider() {
           data={sliderList}
           horizontal={true}
           showsHorizontalScrollIndicator={false}
-          keyExtractor={(item, index) => index.toString()} // Use index for keys
+          keyExtractor={(item, index) => index.toString()} 
           renderItem={({ item }) => (
             <View>
               <Image 

@@ -2,7 +2,6 @@ import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
 import React, { useEffect, useState } from 'react';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '@/config/firebaseconfig';
-import { FlatList } from 'react-native-gesture-handler';
 
 export default function Category({ category }) {
   const [categoryList, setCategoryList] = useState([]);
@@ -25,11 +24,10 @@ export default function Category({ category }) {
     <View style={styles.categoryWrapper}>
       <Text style={styles.categoryText}>Category</Text>
 
-      <FlatList
-        data={categoryList}
-        numColumns={3}
-        renderItem={({ item }) => (
+      <View style={styles.categoryContainer}>
+        {categoryList.map((item) => (
           <TouchableOpacity
+            key={item.name} // Use item name for keys
             onPress={() => {
               setSelectedCategory(item.name);
               category(item.name);
@@ -44,10 +42,8 @@ export default function Category({ category }) {
             </View>
             <Text style={styles.itemName}>{item?.name}</Text>
           </TouchableOpacity>
-        )}
-        keyExtractor={(item) => item.name} // Use item name for keys
-        contentContainerStyle={styles.flatListContainer} // Add styling for the FlatList content
-      />
+        ))}
+      </View>
     </View>
   );
 }
@@ -57,8 +53,10 @@ const styles = StyleSheet.create({
     marginTop: 20,
     paddingHorizontal: 10,
   },
-  flatListContainer: {
-    paddingBottom: 20, // Add some padding to the bottom
+  categoryContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between', // Distribute items evenly
   },
   categoryImage: {
     marginTop: 20,
@@ -70,9 +68,8 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   categoryItem: {
-    flex: 1,
-    maxWidth: '30%',
-    margin: 5,
+    width: '30%', // Set each item to occupy 30% of the container width
+    marginBottom: 15,
   },
   container: {
     backgroundColor: '#F3D0D7',

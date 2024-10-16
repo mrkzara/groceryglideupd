@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import Category from './Category';
 import { collection, getDocs, query, where, onSnapshot } from 'firebase/firestore';
 import { db } from '../../config/firebaseconfig';
@@ -45,23 +45,30 @@ export default function ItemsByCategory() {
     <ScrollView>
       <Category category={(value) => GetItemList(value)} />
       <Text style={styles.title}>View All</Text>
-      <FlatList
-        data={itemList}
-        horizontal={true}
-        showsHorizontalScrollIndicator={false}
-        renderItem={({ item }) => (
-          <ItemListCollection product={item} onAdd={handleAddItem} />
-        )}
-        keyExtractor={(item, index) => index.toString()}
-      />
+
+      
+      <ScrollView horizontal={true} showsHorizontalScrollIndicator={false}>
+        <View style={styles.itemListContainer}>
+          {itemList.map((item, index) => (
+            <ItemListCollection
+              key={index.toString()}
+              product={item}
+              onAdd={handleAddItem}
+            />
+          ))}
+        </View>
+      </ScrollView>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-
   title: {
     fontSize: 18,
     marginVertical: 10,
+  },
+  itemListContainer: {
+    flexDirection: 'row',   // Horizontally layout items
+    paddingHorizontal: 2,
   },
 });

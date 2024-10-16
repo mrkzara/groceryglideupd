@@ -1,72 +1,126 @@
-import React from 'react';
-import { StyleSheet, View, TouchableOpacity, Alert, Image } from 'react-native';
-import { useRoute } from '@react-navigation/native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, Image, StyleSheet, TouchableOpacity, Dimensions, Animated, ScrollView } from 'react-native';
+import { collection, getDocs, query } from 'firebase/firestore';
+import { db } from '../../config/firebaseconfig'; 
 
-const allShelfMarkers = [
-  { id: 'Home Care', position: { top: '41%', left: '5%' } },
-  { id: 'Personal Care', position: { top: '24%', left: '27%' } },
-  { id: 'Wine/Liquor', position: { top: '24%', left: '67%' } },
-  { id: 'Drinks', position: { top: '40%', left: '90%' } },
-  { id: 'Frozen', position: { top: '65%', left: '93%' } },
-  { id: 'Ice Cream', position: { top: '60%', left: '57%' } },
-  { id: 'Water Section', position: { top: '74%', left: '80%' } },
-  { id: 'Candies', position: { top: '40%', left: '55%' } },
-  { id: 'Snacks', position: { top: '40%', left: '70%' } }
+const storeLayoutImage = require('../../assets/images/store.png');
+
+// Define marker positions by category
+const markerPositions = [
+  { id: '1', category: 'Canned', location: { x: 50, y: 100 } }, 
+  { id: '2', category: 'Drinks', location: { x: 330, y: 80 } },  // This will match with Coke's category
+  { id: '4', category: 'Homecare', location: { x: 37, y: 87 } },
+  { id: '6', category: 'Snacks', location: { x: 263, y: 84 } },
 ];
 
-const MapScreen = () => {
-  const route = useRoute();
-  const { selectedCategories } = route.params;
+export default function MapScreen() {
+  const [items, setItems] = useState([]); 
+  const [activeItem, setActiveItem] = useState(null);  
+  const [markerAnimation] = useState(new Animated.Value(1)); 
 
+  useEffect(() => {
+    fetchItemsFromList();
+  }, []);
 
+  const fetchItemsFromList = async () => {
+    const q = query(collection(db, 'SelectedItems')); 
+    const querySnapshot = await getDocs(q);
+    const fetchedItems = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); 
+    setItems(fetchedItems);
+  };
 
-  // Filter markers to only show those that are in selectedCategories
-  const filteredMarkers = allShelfMarkers.filter(marker =>
-    selectedCategories.includes(marker.id)
-  );
+  const handleItemPress = (item) => {
+    setActiveItem(item); 
+    startBlinking(); 
+  };
+
+  const startBlinking = () => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(markerAnimation, {
+          toValue: 0.5, 
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.timing(markerAnimation, {
+          toValue: 1,  
+          duration: 300,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+  };
+
+  // Create a function to find the marker for the active item's category
+  const renderActiveMarker = () => {
+    if (!activeItem) return null; // No active item, so no marker
+
+    // Find the marker by category
+    const marker = markerPositions.find(m => m.category === activeItem.category);
+    
+    if (!marker) return null; // No marker for this category
+
+    return (
+      <Animated.View
+        style={[
+          styles.marker,
+          {
+            left: marker.location.x,
+            top: marker.location.y,
+            opacity: markerAnimation, // Blinking effect
+          },
+        ]}
+      />
+    );
+  };
 
   return (
     <View style={styles.container}>
-      <View style={styles.imageContainer}>
-        <Image
-          source={require('../../assets/images/store.png')}
-          style={styles.mapImage}
-          resizeMode="contain"
-        />
-        {filteredMarkers.map((marker) => (
-          <TouchableOpacity
-            key={marker.id}
-            style={[styles.marker, marker.position]}
-          />
+      {/* Display the store layout */}
+      <Image source={storeLayoutImage} style={styles.storeLayout} />
+
+      {/* Show blinking marker only when an item is selected */}
+      {renderActiveMarker()}
+
+      {/* List of items below the store layout */}
+      <ScrollView style={styles.itemList}>
+        {items.map((item) => (
+          <TouchableOpacity key={item.id} onPress={() => handleItemPress(item)} style={styles.itemButton}>
+            <Text style={styles.itemName}>{item.name}</Text>
+          </TouchableOpacity>
         ))}
-      </View>
+      </ScrollView>
     </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
-    justifyContent: 'center',
-    alignItems: 'center',
+    flex: 1,
+    marginTop: 50,
   },
-  imageContainer: {
-    width: '100%',
-    height: '80%',
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'relative',
+  storeLayout: {
+    width: Dimensions.get('window').width,
+    height: 250, // Adjust based on your image aspect ratio
+    marginBottom: 20,
+    resizeMode: 'contain',
   },
-  mapImage: {
+  itemList: {
     width: '100%',
-    height: '100%',
+  },
+  itemButton: {
+    padding: 15,
+    borderBottomWidth: 1,
+    borderColor: '#ccc',
+  },
+  itemName: {
+    fontSize: 18,
   },
   marker: {
     position: 'absolute',
-    backgroundColor: 'red', // Pin color
-    width: 10, // Pin width
-    height: 20, // Pin height
-    borderRadius: 5,
+    width: 20,
+    height: 20,
+    backgroundColor: 'red',
+    borderRadius: 10,
   },
 });
-
-export default MapScreen;
