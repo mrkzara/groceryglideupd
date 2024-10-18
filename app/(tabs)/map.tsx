@@ -1,16 +1,17 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity, Dimensions, Animated, ScrollView } from 'react-native';
-import { collection, getDocs, query } from 'firebase/firestore';
+import { View, Text, Image, StyleSheet, TouchableOpacity, Dimensions, Animated, ScrollView, Alert } from 'react-native';
+import { collection, query, onSnapshot, deleteDoc, doc } from 'firebase/firestore';
 import { db } from '../../config/firebaseconfig'; 
 
 const storeLayoutImage = require('../../assets/images/store.png');
 
-// Define marker positions by category
+
 const markerPositions = [
   { id: '1', category: 'Canned', location: { x: 50, y: 100 } }, 
-  { id: '2', category: 'Drinks', location: { x: 330, y: 80 } },  // This will match with Coke's category
-  { id: '4', category: 'Homecare', location: { x: 37, y: 87 } },
-  { id: '6', category: 'Snacks', location: { x: 263, y: 84 } },
+  { id: '2', category: 'Drinks', location: { x: 330, y: 80 } },
+  { id: '3', category: 'Homecare', location: { x: 37, y: 87 } },
+  { id: '4', category: 'Ice Cream', location: { x: 150, y: 170 } },
+  { id: '5', category: 'Snacks', location: { x: 263, y: 84 } },
 ];
 
 export default function MapScreen() {
@@ -24,9 +25,12 @@ export default function MapScreen() {
 
   const fetchItemsFromList = async () => {
     const q = query(collection(db, 'SelectedItems')); 
-    const querySnapshot = await getDocs(q);
-    const fetchedItems = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); 
-    setItems(fetchedItems);
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+      const fetchedItems = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setItems(fetchedItems);
+    });
+
+    return () => unsubscribe();
   };
 
   const handleItemPress = (item) => {
@@ -51,14 +55,12 @@ export default function MapScreen() {
     ).start();
   };
 
-  // Create a function to find the marker for the active item's category
   const renderActiveMarker = () => {
-    if (!activeItem) return null; // No active item, so no marker
+    if (!activeItem) return null; 
 
-    // Find the marker by category
     const marker = markerPositions.find(m => m.category === activeItem.category);
     
-    if (!marker) return null; // No marker for this category
+    if (!marker) return null; 
 
     return (
       <Animated.View
@@ -74,6 +76,25 @@ export default function MapScreen() {
     );
   };
 
+  const handleItemAcquired = async (itemId: string, itemName: string) => {
+    Alert.alert(
+      'Item Acquired',
+      `Have you acquired ${itemName}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Yes', onPress: async () => {
+            await deleteDoc(doc(db, 'SelectedItems', itemId));
+            // Clear the active item if it's the one being acquired
+            if (activeItem && activeItem.id === itemId) {
+              setActiveItem(null); // Clear marker
+            }
+          }
+        }
+      ]
+    );
+  };
+
   return (
     <View style={styles.container}>
       {/* Display the store layout */}
@@ -85,9 +106,21 @@ export default function MapScreen() {
       {/* List of items below the store layout */}
       <ScrollView style={styles.itemList}>
         {items.map((item) => (
-          <TouchableOpacity key={item.id} onPress={() => handleItemPress(item)} style={styles.itemButton}>
-            <Text style={styles.itemName}>{item.name}</Text>
-          </TouchableOpacity>
+          <View key={item.id} style={styles.itemContainer}>
+            <TouchableOpacity 
+              onPress={() => handleItemPress(item)} 
+              style={[styles.itemButton, activeItem && activeItem.id === item.id ? styles.activeItemButton : null]}
+            >
+              <Text style={[styles.itemName, activeItem && activeItem.id === item.id ? styles.activeItemText : null]}>
+                {item.name}
+              </Text>
+            </TouchableOpacity>
+            <View style={styles.buttonContainer}>
+              <TouchableOpacity onPress={() => handleItemAcquired(item.id, item.name)} style={styles.checkButton}>
+                <Text style={styles.buttonText}>✔</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         ))}
       </ScrollView>
     </View>
@@ -101,20 +134,47 @@ const styles = StyleSheet.create({
   },
   storeLayout: {
     width: Dimensions.get('window').width,
-    height: 250, // Adjust based on your image aspect ratio
+    height: 250,
     marginBottom: 20,
     resizeMode: 'contain',
   },
   itemList: {
     width: '100%',
   },
+  itemContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
   itemButton: {
     padding: 15,
     borderBottomWidth: 1,
     borderColor: '#ccc',
+    flex: 1,
   },
   itemName: {
     fontSize: 18,
+  },
+  activeItemButton: {
+    backgroundColor: '#f0f0f0',
+  },
+  activeItemText: {
+    fontWeight: 'bold',
+    color: '#ff6347',
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  checkButton: {
+    padding: 10,
+    backgroundColor: '#4CAF50',
+    borderRadius: 5,
+    marginLeft: 10,
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 16,
   },
   marker: {
     position: 'absolute',
