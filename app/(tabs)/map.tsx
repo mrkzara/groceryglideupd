@@ -5,13 +5,14 @@ import { db } from '../../config/firebaseconfig';
 
 const storeLayoutImage = require('../../assets/images/store.png');
 
-
 const markerPositions = [
   { id: '1', category: 'Canned', location: { x: 50, y: 100 } }, 
   { id: '2', category: 'Drinks', location: { x: 330, y: 80 } },
   { id: '3', category: 'Homecare', location: { x: 37, y: 87 } },
   { id: '4', category: 'Ice Cream', location: { x: 150, y: 170 } },
-  { id: '5', category: 'Snacks', location: { x: 263, y: 84 } },
+  { id: '5', category: 'Ice Cream', location: { x: 200, y: 170 } },
+  { id: '6', category: 'Mineral Waters', location: { x: 290, y: 227 } },
+  { id: '7', category: 'Snacks', location: { x: 263, y: 84 } },
 ];
 
 export default function MapScreen() {
@@ -27,7 +28,19 @@ export default function MapScreen() {
     const q = query(collection(db, 'SelectedItems')); 
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
       const fetchedItems = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setItems(fetchedItems);
+
+      // Group items by category to avoid duplicates in the same category
+      const groupedItems = fetchedItems.reduce((acc, item) => {
+        if (!acc[item.category]) {
+          acc[item.category] = { ...item, count: 1 };
+        } else {
+          acc[item.category].count += 1;
+        }
+        return acc;
+      }, {});
+
+      // Convert the grouped items object back to an array
+      setItems(Object.values(groupedItems));
     });
 
     return () => unsubscribe();
@@ -76,18 +89,21 @@ export default function MapScreen() {
     );
   };
 
-  const handleItemAcquired = async (itemId: string, itemName: string) => {
+  // Updated handleItemAcquired to account for multiple counts of an item
+  const handleItemAcquired = async (itemId, itemName, itemCount) => {
     Alert.alert(
       'Item Acquired',
-      `Have you acquired ${itemName}?`,
+      `Have you acquired all ${itemCount} of ${itemName}?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Yes', onPress: async () => {
-            await deleteDoc(doc(db, 'SelectedItems', itemId));
-            // Clear the active item if it's the one being acquired
+            for (let i = 0; i < itemCount; i++) {
+              await deleteDoc(doc(db, 'SelectedItems', itemId)); 
+            }
+            
             if (activeItem && activeItem.id === itemId) {
-              setActiveItem(null); // Clear marker
+              setActiveItem(null); 
             }
           }
         }
@@ -112,11 +128,12 @@ export default function MapScreen() {
               style={[styles.itemButton, activeItem && activeItem.id === item.id ? styles.activeItemButton : null]}
             >
               <Text style={[styles.itemName, activeItem && activeItem.id === item.id ? styles.activeItemText : null]}>
-                {item.name}
+                {item.name} x{item.count} {/* Display count of the items */}
               </Text>
             </TouchableOpacity>
             <View style={styles.buttonContainer}>
-              <TouchableOpacity onPress={() => handleItemAcquired(item.id, item.name)} style={styles.checkButton}>
+              {/* Pass item.count to handleItemAcquired */}
+              <TouchableOpacity onPress={() => handleItemAcquired(item.id, item.name, item.count)} style={styles.checkButton}>
                 <Text style={styles.buttonText}>✔</Text>
               </TouchableOpacity>
             </View>

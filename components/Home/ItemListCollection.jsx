@@ -1,10 +1,11 @@
-import React from 'react';
-import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, Image, TouchableOpacity, StyleSheet, Animated } from 'react-native';
 import { collection, addDoc } from 'firebase/firestore';
 import { db } from '@/config/firebaseconfig';
 
 export default function ItemListCollection({ product, onAdd }) {
-  
+  const [itemAdded, setItemAdded] = useState(false); // State to control the prompt
+
   const handleAdd = async (product) => {
     try {
       // Add the product to the "SelectedItems" collection
@@ -18,6 +19,14 @@ export default function ItemListCollection({ product, onAdd }) {
       
       // Call the onAdd function to update local state
       onAdd(product);
+
+      // Show the "Item added" prompt
+      setItemAdded(true);
+      
+      // Hide the prompt after 1 second
+      setTimeout(() => {
+        setItemAdded(false);
+      }, 1000);
       
     } catch (error) {
       console.error('Error adding item to Firestore:', error);
@@ -34,6 +43,13 @@ export default function ItemListCollection({ product, onAdd }) {
       <TouchableOpacity style={styles.button} onPress={() => handleAdd(product)}>
         <Text style={styles.buttonText}>Add</Text>
       </TouchableOpacity>
+
+      {/* "Item added" prompt */}
+      {itemAdded && (
+        <Animated.View style={styles.promptContainer}>
+          <Text style={styles.promptText}>Item added</Text>
+        </Animated.View>
+      )}
     </View>
   );
 }
@@ -63,6 +79,19 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   buttonText: {
+    color: '#fff',
+    fontSize: 16,
+  },
+  promptContainer: {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    transform: [{ translateX: -50 }, { translateY: -50 }],
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    padding: 10,
+    borderRadius: 5,
+  },
+  promptText: {
     color: '#fff',
     fontSize: 16,
   },
