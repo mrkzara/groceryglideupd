@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, FlatList, StyleSheet, TouchableOpacity, Alert } from 'react-native';
-import { collection, query, onSnapshot, deleteDoc, doc } from 'firebase/firestore';
+import { collection, query, onSnapshot, deleteDoc, doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/config/firebaseconfig';
 import { useNavigation } from '@react-navigation/native';
 
@@ -25,6 +25,7 @@ export default function ListScreen() {
         id: doc.id,
         name: doc.data().name,
         category: doc.data().category,
+        quantity: doc.data().quantity || 1,
       }));
 
       // Aggregate items with the same name
@@ -49,7 +50,7 @@ export default function ListScreen() {
     return () => unsubscribe();
   }, []);
 
-  const handleButtonPress = () => {
+  const handleStartNavigation = () => {
     Alert.alert(
       "Start Navigation", 
       "Are you sure you want to start navigation?",
@@ -62,6 +63,7 @@ export default function ListScreen() {
         {
           text: "Yes",
           onPress: () => {
+            // Pass selected categories to the map screen
             const selectedCategories = [...new Set(selectedItems.map(item => item.category))];
             navigation.navigate('map', { selectedCategories });
           },
@@ -71,13 +73,26 @@ export default function ListScreen() {
     );
   };
   
-  const handleRemoveItem = async (itemId: string, itemName: string) => {
-    await deleteDoc(doc(db, 'SelectedItems', itemId));
-    setSelectedItems((prevItems) =>
-      prevItems.map((item) =>
-        item.name === itemName ? { ...item, quantity: item.quantity - 1 } : item
-      ).filter((item) => item.quantity > 0)
-    );
+  const handleRemoveItem = async (itemId: string, itemName: string, quantity: number) => {
+    if (quantity > 1) {
+      // If more than one item, update the quantity
+      await updateDoc(doc(db, 'SelectedItems', itemId), {
+        quantity: quantity - 1,
+      });
+      setSelectedItems((prevItems) =>
+        prevItems.map((item) =>
+          item.name === itemName
+            ? { ...item, quantity: item.quantity - 1 }
+            : item
+        ).filter((item) => item.quantity > 0)
+      );
+      Alert.alert("Item Removed", `${itemName} has been removed from your list.`);
+    } else {
+      // If quantity is 1, remove the item completely
+      await deleteDoc(doc(db, 'SelectedItems', itemId));
+      setSelectedItems((prevItems) => prevItems.filter((item) => item.id !== itemId));
+      Alert.alert("Item Removed", `${itemName} has been removed from your list.`);
+    }
   };
 
   return (
@@ -92,7 +107,7 @@ export default function ListScreen() {
               {item.name} x{item.quantity}
             </Text>
             <TouchableOpacity
-              onPress={() => handleRemoveItem(item.id, item.name)}
+              onPress={() => handleRemoveItem(item.id, item.name, item.quantity)}
               style={styles.removeButton}
             >
               <Text style={styles.removeButtonText}>Remove</Text>
@@ -100,7 +115,7 @@ export default function ListScreen() {
           </View>
         )}
       />
-      <TouchableOpacity onPress={handleButtonPress} style={styles.button}>
+      <TouchableOpacity onPress={handleStartNavigation} style={styles.button}>
         <Text style={styles.buttonText}>Start Navigation</Text>
       </TouchableOpacity>
     </View>
